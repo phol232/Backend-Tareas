@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Usuario</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        form {
+            display: inline-block;
+            text-align: left;
+            background: #f4f4f4;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        input {
+            display: block;
+            width: 250px;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        button {
+            background: green;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Registro de Usuario</h2>
+<form id="registerForm">
+    <label>ID:</label>
+    <input type="text" id="id" required>
+
+    <label>Nombre:</label>
+    <input type="text" id="name" required>
+
+    <label>Email:</label>
+    <input type="email" id="email" required>
+
+    <label>Contraseña:</label>
+    <input type="password" id="password" required>
+
+    <button type="submit">Registrar</button>
+</form>
+
+<p id="message"></p>
+
+<script>
+    document.getElementById("registerForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        const id = document.getElementById("id").value;
+        const name = document.getElementById("name").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        fetch("http://localhost:8080/api/users", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ id, name, email, password })
+        })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("message").innerText = data.message;
+                document.getElementById("message").style.color = data.success ? "green" : "red";
+            })
+            .catch(error => {
+                document.getElementById("message").innerText = "Error en el registro.";
+                document.getElementById("message").style.color = "red";
+            });
+    });
+</script>
+
+</body>
+</html>
