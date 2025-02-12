@@ -28,10 +28,15 @@ public class CategoryRepository {
         return jdbcTemplate.query(sql, this::mapRowToCategory);
     }
 
-    // Buscar categoría por nombre
-    public List<Category> buscarPorNombre(String nombre) {
+    // ✅ Buscar una única categoría por nombre (retorna null si no existe)
+    public Category buscarPorNombre(String nombre) {
         String sql = "CALL BuscarCategoriaPorNombre(?)";
-        return jdbcTemplate.query(sql, new Object[]{"%" + nombre + "%"}, this::mapRowToCategory);
+
+        try {
+            return jdbcTemplate.queryForObject(sql, new Object[]{nombre}, this::mapRowToCategory);
+        } catch (Exception e) {
+            return null; // 🚨 Si no se encuentra, retorna null en vez de lanzar un error.
+        }
     }
 
     // Actualizar categoría

@@ -22,36 +22,37 @@ public class TareaRepository {
         jdbcTemplate.update(sql, userId, titulo, descripcion, categoriaNombre, prioridad, estado, fecha);
     }
 
-    // ✅ Editar tarea existente
-    public void editarTarea(String idTarea, String titulo, String descripcion, String categoriaNombre, String prioridad, String estado, LocalDateTime fecha) {
+
+    public int editarTarea(String idTarea, String titulo, String descripcion, String categoriaNombre, String prioridad, String estado, LocalDateTime fecha) {
         String sql = "CALL EditarTarea(?, ?, ?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sql, idTarea, titulo, descripcion, categoriaNombre, prioridad, estado, fecha);
+        return jdbcTemplate.update(sql, idTarea, titulo, descripcion, categoriaNombre, prioridad, estado, fecha);
     }
 
-    // ✅ Eliminar tarea por ID
-    public void eliminarTarea(String idTarea) {
+    public int eliminarTarea(String idTarea) {
         String sql = "CALL EliminarTarea(?)";
-        jdbcTemplate.update(sql, idTarea);
+        return jdbcTemplate.update(sql, idTarea); // 🔹 Retorna cantidad de filas eliminadas
     }
 
-    // ✅ Listar todas las tareas con nombre de la categoría
+
+    // ✅ Listar todas las tareas con ID y nombre de la categoría
     public List<Tarea> listarTareas() {
         String sql = "CALL ListarTareas()";
         return jdbcTemplate.query(sql, this::mapRowToTarea);
     }
 
-    // ✅ Método privado para mapear la consulta SQL a la entidad `Tarea`
     private Tarea mapRowToTarea(ResultSet rs, int rowNum) throws SQLException {
         Tarea tarea = new Tarea();
+        tarea.setIdTarea(rs.getString("idTarea"));
         tarea.setTitulo(rs.getString("titulo"));
         tarea.setDescripcion(rs.getString("descripcion"));
         tarea.setPrioridad(rs.getString("prioridad"));
         tarea.setEstado(rs.getString("estado"));
         tarea.setFecha(rs.getTimestamp("fecha") != null ? rs.getTimestamp("fecha").toLocalDateTime() : null);
 
-        // 🔥 Mapear solo el nombre de la categoría usando @Transient
-        tarea.setNombreCategoria(rs.getString("categoria") != null ? rs.getString("categoria") : "Sin Categoría");
+
+        tarea.setNombreCategoria(rs.getString("categoria"));
 
         return tarea;
     }
+
 }

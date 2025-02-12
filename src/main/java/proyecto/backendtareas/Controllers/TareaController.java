@@ -4,12 +4,14 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import proyecto.backendtareas.Entity.Category;
 import proyecto.backendtareas.Entity.Tarea;
+import proyecto.backendtareas.Service.CategoryService;
 import proyecto.backendtareas.Service.TareaService;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/tareas")
@@ -19,71 +21,123 @@ public class TareaController {
     @Autowired
     private TareaService tareaService;
 
-    // ✅ Guardar nueva tarea y devolver la lista actualizada
+    @Autowired
+    private CategoryService categoryService;
+
     @PostMapping
-    public ResponseEntity<List<Tarea>> agregarTarea(@RequestBody Map<String, String> request, HttpSession session) {
+    public ResponseEntity<String> agregarTarea(@RequestBody Tarea tarea, HttpSession session) {
         String userId = (String) session.getAttribute("userId");
 
-        // 🚨 Verificar que el usuario esté autenticado
+        // 🚨 Verificar autenticación
         if (userId == null) {
-            return ResponseEntity.status(401).build(); // No autorizado
+            return ResponseEntity.status(401).body("Usuario no autenticado");
         }
 
-        // 🛠 Extraer los datos del request
-        String titulo = request.get("titulo");
-        String descripcion = request.get("descripcion");
-        String categoriaNombre = request.getOrDefault("categoria", "Sin Categoría");
-        String prioridad = request.get("prioridad");
-        String estado = request.get("estado");
-        LocalDateTime fecha = LocalDateTime.now();
+        // 📌 Asegurar que la fecha se establezca si no se envió
+        if (tarea.getFecha() == null) {
+            tarea.setFecha(LocalDateTime.now());
+        }
+
+        // 📌 Verificar si la categoría está presente y válida
+        if (tarea.getCategoria() == null || tarea.getCategoria().getNombre() == null || tarea.getCategoria().getNombre().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("❌ Error: La categoría no está bien formada");
+        }
+
+        Category categoria = categoryService.buscarPorNombre(tarea.getCategoria().getNombre());
+
+        if (categoria == null) {
+            return ResponseEntity.badRequest().body("❌ Error: La categoría '" + tarea.getCategoria().getNombre() + "' no existe.");
+        }
+
+        // ✅ Asociar la categoría encontrada a la tarea
+        tarea.setCategoria(categoria);
 
         // 🚀 Guardar tarea en BD
-        tareaService.guardarTarea(userId, titulo, descripcion, categoriaNombre, prioridad, estado, fecha);
+        tareaService.guardarTarea(userId, tarea.getTitulo(), tarea.getDescripcion(),
+                categoria.getNombre(), tarea.getPrioridad(),
+                tarea.getEstado(), tarea.getFecha());
 
-        // ✅ Devolver la lista de tareas actualizada
-        return ResponseEntity.ok(tareaService.listarTareas());
+        // ✅ Devolver mensaje de éxito
+        return ResponseEntity.ok("✅ Tarea creada correctamente.");
     }
 
-    // ✅ Editar una tarea existente y devolver la lista actualizada
+
+    // ✅ Editar tarea existente
     @PutMapping("/{id}")
-    public ResponseEntity<List<Tarea>> editarTarea(@PathVariable String id, @RequestBody Map<String, String> request, HttpSession session) {
+    public ResponseEntity<List<Tarea>> editarTarea(@PathVariable String id, @RequestBody Tarea tarea, HttpSession session) {
         String userId = (String) session.getAttribute("userId");
 
-        // 🚨 Verificar que el usuario esté autenticado
+        // 🚨 Verificar autenticación del usuario
         if (userId == null) {
-            return ResponseEntity.status(401).build(); // No autorizado
+            return ResponseEntity.status(401).build();
         }
 
-        // 🛠 Extraer los datos del request
-        String titulo = request.get("titulo");
-        String descripcion = request.get("descripcion");
-        String categoriaNombre = request.getOrDefault("categoria", "Sin Categoría");
-        String prioridad = request.get("prioridad");
-        String estado = request.get("estado");
-        LocalDateTime fecha = LocalDateTime.now();
+        // 🚨 Validar que la tarea a actualizar tiene título y estado
+        if (tarea.getTitulo() == null || tarea.getTitulo().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(null);  // ❌ Error si el título está vacío
+        }
+        if (tarea.getEstado() == null || tarea.getEstado().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(null);  // ❌ Error si el estado está vacío
+        }
 
-        // 🚀 Editar tarea en BD
-        tareaService.editarTarea(id, titulo, descripcion, categoriaNombre, prioridad, estado, fecha);
+        // 📌 Si no se envió una fecha, usar la fecha actual
+        if (tarea.getFecha() == null) {
+            tarea.setFecha(LocalDateTime.now());
+        }
 
-        // ✅ Devolver la lista de tareas actualizada
-        return ResponseEntity.ok(tareaService.listarTareas());
+        // 📌 Verificar si la categoría está presente y válida
+        if (tarea.getCategoria() == null || tarea.getCategoria().getNombre() == null || tarea.getCategoria().getNombre().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(null);  // ❌ Error si la categoría no está bien formada
+        }
+
+        // 📌 Buscar la categoría en la BD o crear una nueva si no existe
+        Category categoria = categoryService.buscarPorNombre(tarea.getCategoria().getNombre());
+
+        if (categoria == null) {
+            // ✅ Si la categoría no existe, crearla y guardarla en la BD
+            categoria = new Category();
+            categoria.setNombre(tarea.getCategoria().getNombre());
+            categoria.setFecha(LocalDateTime.now());
+            categoryService.insertarCategoria(categoria.getNombre(), categoria.getFecha()); // 🚀 Guardar en BD
+        }
+
+        // ✅ Asociar la categoría encontrada/creada a la tarea
+        tarea.setCategoria(categoria);
+
+        // 📌 Llamar al servicio para actualizar la tarea
+        boolean actualizada = tareaService.editarTarea(
+                id, tarea.getTitulo(), tarea.getDescripcion(),
+                categoria.getNombre(), // ✅ Pasamos `String` en lugar de `Category`
+                tarea.getPrioridad(), tarea.getEstado(), tarea.getFecha()
+        );
+
+        if (actualizada) {
+            return ResponseEntity.ok(tareaService.listarTareas()); // ✅ Devuelve la lista actualizada si la tarea fue editada
+        } else {
+            return ResponseEntity.notFound().build(); // ❌ Devuelve 404 si la tarea no existe
+        }
     }
 
-    // ✅ Eliminar una tarea y devolver la lista actualizada
+
+
+    // ✅ Eliminar tarea y devolver la lista actualizada
     @DeleteMapping("/{id}")
     public ResponseEntity<List<Tarea>> eliminarTarea(@PathVariable String id, HttpSession session) {
         String userId = (String) session.getAttribute("userId");
 
-        // 🚨 Verificar que el usuario esté autenticado
+        // 🚨 Verificar autenticación
         if (userId == null) {
-            return ResponseEntity.status(401).build(); // No autorizado
+            return ResponseEntity.status(401).build();
         }
 
-        // 🚀 Eliminar tarea
-        tareaService.eliminarTarea(id);
+        // 🚀 Intentar eliminar la tarea
+        boolean eliminada = tareaService.eliminarTarea(id);
 
-        // ✅ Devolver la lista de tareas actualizada
-        return ResponseEntity.ok(tareaService.listarTareas());
+        if (eliminada) {
+            return ResponseEntity.ok(tareaService.listarTareas());  // ✅ Devuelve la lista actualizada si la tarea fue eliminada
+        } else {
+            return ResponseEntity.notFound().build();  // ❌ Devuelve 404 si la tarea no existe
+        }
     }
 
 

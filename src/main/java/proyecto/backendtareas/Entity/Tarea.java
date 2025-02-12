@@ -1,5 +1,7 @@
 package proyecto.backendtareas.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,6 +11,7 @@ import java.time.LocalDateTime;
 @Table(name = "Tareas")
 @Getter
 @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Tarea {
 
     @Id
@@ -27,6 +30,7 @@ public class Tarea {
 
     @ManyToOne
     @JoinColumn(name = "catId", referencedColumnName = "idCat", foreignKey = @ForeignKey(name = "FK_Tarea_Categoria"), nullable = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)  // 🔥 Evita que se devuelva "categoria": null
     private Category categoria;
 
     @Column(name = "prioridad", length = 13, nullable = false)
@@ -38,7 +42,6 @@ public class Tarea {
     @Column(name = "fecha")
     private LocalDateTime fecha;
 
-    // 🔥 Campo transitorio para devolver el nombre de la categoría en JSON
     @Transient
     private String nombreCategoria;
 

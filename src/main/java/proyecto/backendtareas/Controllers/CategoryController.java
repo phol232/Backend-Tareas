@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*;
 import proyecto.backendtareas.Entity.Category;
 import proyecto.backendtareas.Service.CategoryService;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -17,36 +16,70 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
-    // Insertar nueva categoría
+    // ✅ Insertar nueva categoría (verifica si ya existe antes de insertarla)
     @PostMapping
     public ResponseEntity<String> crearCategoria(@RequestBody Category categoria) {
-        categoryService.insertarCategoria(categoria.getNombre(), categoria.getFecha());
-        return ResponseEntity.ok("Categoría insertada correctamente.");
+        if (categoria.getNombre() == null || categoria.getNombre().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("❌ Error: El nombre de la categoría no puede estar vacío.");
+        }
+
+        Category nuevaCategoria = categoryService.insertarCategoria(categoria.getNombre(), categoria.getFecha());
+
+        if (nuevaCategoria != null) {
+            return ResponseEntity.ok("✅ Categoría '" + nuevaCategoria.getNombre() + "' creada exitosamente.");
+        } else {
+            return ResponseEntity.badRequest().body("❌ Error al crear la categoría.");
+        }
     }
 
-    // Listar todas las categorías
+    // ✅ Listar todas las categorías
     @GetMapping
     public ResponseEntity<List<Category>> obtenerCategorias() {
-        return ResponseEntity.ok(categoryService.listarCategorias());
+        List<Category> categorias = categoryService.listarCategorias();
+        if (categorias.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(categorias);
     }
 
-    // Buscar categoría por nombre
+    // ✅ Buscar categoría por nombre (devuelve una sola categoría en lugar de lista)
     @GetMapping("/buscar")
-    public ResponseEntity<List<Category>> buscarPorNombre(@RequestParam String nombre) {
-        return ResponseEntity.ok(categoryService.buscarPorNombre(nombre));
+    public ResponseEntity<Category> buscarPorNombre(@RequestParam String nombre) {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Category categoria = categoryService.buscarPorNombre(nombre);
+        if (categoria != null) {
+            return ResponseEntity.ok(categoria);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    // Actualizar categoría
+    // ✅ Actualizar categoría (verifica si existe antes de actualizar)
     @PutMapping("/{id}")
     public ResponseEntity<String> actualizarCategoria(@PathVariable String id, @RequestBody Category categoria) {
-        categoryService.actualizarCategoria(id, categoria.getNombre(), categoria.getFecha());
-        return ResponseEntity.ok("Categoría actualizada correctamente.");
+        if (categoria.getNombre() == null || categoria.getNombre().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("❌ Error: El nombre de la categoría no puede estar vacío.");
+        }
+
+        boolean actualizado = categoryService.actualizarCategoria(id, categoria.getNombre());
+        if (actualizado) {
+            return ResponseEntity.ok("✅ Categoría actualizada correctamente.");
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    // Eliminar categoría
+    // ✅ Eliminar categoría (verifica si existe antes de eliminar)
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminarCategoria(@PathVariable String id) {
-        categoryService.eliminarCategoria(id);
-        return ResponseEntity.ok("Categoría eliminada correctamente.");
+        boolean eliminado = categoryService.eliminarCategoria(id);
+        if (eliminado) {
+            return ResponseEntity.ok("✅ Categoría eliminada correctamente.");
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

@@ -14,23 +14,51 @@ public class CategoryService {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    public void insertarCategoria(String nombre, LocalDateTime fecha) {
-        categoryRepository.insertarCategoria(nombre, fecha);
+    // ✅ Insertar categoría (validando si ya existe antes de insertar)
+    public Category insertarCategoria(String nombre, LocalDateTime fecha) {
+        Category categoriaExistente = categoryRepository.buscarPorNombre(nombre);
+
+        if (categoriaExistente != null) {
+            return categoriaExistente; // 📌 Si la categoría ya existe, la devuelve.
+        }
+
+        LocalDateTime fechaActual = LocalDateTime.now();
+        categoryRepository.insertarCategoria(nombre, fechaActual);
+        return categoryRepository.buscarPorNombre(nombre);
     }
 
+    // ✅ Listar todas las categorías
     public List<Category> listarCategorias() {
         return categoryRepository.listarCategorias();
     }
 
-    public List<Category> buscarPorNombre(String nombre) {
+    // ✅ Buscar una sola categoría por nombre (devuelve null si no existe)
+    public Category buscarPorNombre(String nombre) {
         return categoryRepository.buscarPorNombre(nombre);
     }
 
-    public void actualizarCategoria(String idCat, String nombre, LocalDateTime fecha) {
-        categoryRepository.actualizarCategoria(idCat, nombre, fecha);
+    // ✅ Actualizar categoría (verifica si existe antes de actualizar)
+    public boolean actualizarCategoria(String idCat, String nombre) {
+        Category categoria = categoryRepository.buscarPorNombre(nombre);
+
+        if (categoria == null) {
+            return false; // 📌 Retorna false si la categoría no existe.
+        }
+
+        LocalDateTime fechaActual = LocalDateTime.now();
+        categoryRepository.actualizarCategoria(idCat, nombre, fechaActual);
+        return true; // 📌 Retorna true si la actualización fue exitosa.
     }
 
-    public void eliminarCategoria(String idCat) {
+    // ✅ Eliminar categoría (verifica si existe antes de eliminar)
+    public boolean eliminarCategoria(String idCat) {
+        Category categoria = categoryRepository.buscarPorNombre(idCat);
+
+        if (categoria == null) {
+            return false; // 📌 Retorna false si la categoría no existe.
+        }
+
         categoryRepository.eliminarCategoria(idCat);
+        return true; // 📌 Retorna true si la eliminación fue exitosa.
     }
 }
