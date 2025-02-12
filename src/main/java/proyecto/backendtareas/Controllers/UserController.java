@@ -1,4 +1,4 @@
-package proyecto.backendtareas;
+package proyecto.backendtareas.Controllers;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;

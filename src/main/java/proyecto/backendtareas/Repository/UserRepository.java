@@ -1,7 +1,8 @@
-package proyecto.backendtareas;
+package proyecto.backendtareas.Repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import proyecto.backendtareas.Entity.User;
 
 import java.util.Optional;
 
